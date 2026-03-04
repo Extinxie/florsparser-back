@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("POSTGRES_URI")
+}
+
+model Anime {
+  id   String @id @default(uuid())
+  slug String @unique
+
+  shikimoriId   Int     @unique @map("shikimori_id")
+  myanimelistId Int?    @map("myanimelist_id")
+  anilistId     Int?    @unique @map("anilist_id")
+  anilibriaId   Int?    @unique @map("anilibria_id")
+  kinopoiskId   Int?    @unique @map("kinopoisk_id")
+  imdbId        String? @unique @map("imdb_id")
+  kodikId       String? @unique @map("kodik_id")
+  aksorId       String? @unique @map("aksor_id")
+
+  nativeTitle  String  @map("native_title")
+  romajiTitle  String  @map("romaji_title")
+  russianTitle String? @map("russian_title")
+  englishTitle String? @map("english_title")
+
+  poster String? @db.Text
+  banner String? @db.Text
+
+  description String?  @db.Text
+  synonyms    String[]
+  note        String?  @db.Text
+  hashtag     String?
+
+  country AnimeCountry @default(JAPAN)
+  status  AnimeStatus  @default(ONGOING)
+  type    AnimeType    @default(TV)
+  rating  AnimeRating  @default(SAFE)
+  season  AnimeSeason?
+
+  year          Int?
+  airedOn       DateTime? @map("aired_on")
+  releasedOn    DateTime? @map("released_on")
+  nextEpisodeAt DateTime? @map("next_episode_at")
+
+  episodesCount Int? @map("episodes_count")
+  episodesAired Int? @map("episodes_aired")
+  duration      Int?
+
+  shikimoriRating   Float @default(0) @map("shikimori_rating")
+  myanimelistRating Float @default(0) @map("myanimelist_rating")
+  anilistRating     Int   @default(0) @map("anilist_rating")
+  kinopoiskRating   Float @default(0) @map("kinopoisk_rating")
+  imdbRating        Float @default(0) @map("imdb_rating")
+
+  averageRating  Float @default(0) @map("average_rating")
+  bayesianRating Float @default(0) @map("bayesian_rating")
+
+  hasLgbt    Boolean @default(false) @map("has_lgbt")
+  isCensored Boolean @default(false) @map("is_censored")
+  isDeleted  Boolean @default(false) @map("is_deleted")
+
+  licensors   Licensor[]
+  episodes    Episode[]
+  tags        Tag[]
+  studios     Studio[]
+  screenshots Screenshot[]
+  videos      Video[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("animes")
+}
+
+model Licensor {
+  id String @id @default(uuid())
+
+  countries String[] @db.Text
+  title     String   @unique
+
+  anime Anime[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("licensors")
+}
+
+model Episode {
+  id String @id @default(uuid())
+
+  number   Int
+  duration Int?
+
+  anime   Anime  @relation(fields: [animeId], references: [id])
+  animeId String @map("anime_id")
+
+  screenshots  Screenshot[]
+  translations Translation[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime?     @updatedAt @map("updated_at")
+
+  @@index([animeId, number])
+  @@map("episodes")
+}
+
+model Translation {
+  id String @id @default(uuid())
+
+  type   TranslationType
+  player TranslationPlayer
+
+  source    Json
+  episode   Episode @relation(fields: [episodeId], references: [id])
+  episodeId String  @map("episode_id")
+
+  translator   Translator @relation(fields: [translatorId], references: [id])
+  translatorId String     @map("translator_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@index([episodeId, translatorId])
+  @@map("translations")
+}
+
+model Translator {
+  id String @id @default(uuid())
+
+  title String @unique
+
+  translations Translation[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("translators")
+}
+
+model Tag {
+  id String @id @default(uuid())
+
+  shikimoriId Int @unique @map("shikimori_id")
+
+  russianTitle String @unique @map("russian_title")
+  englishTitle String @unique @map("english_title")
+
+  type         TagType
+  isRestricted Boolean @default(false) @map("is_restricted")
+
+  animes Anime[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("tags")
+}
+
+model Studio {
+  id String @id @default(uuid())
+
+  title String @unique
+
+  animes Anime[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("studios")
+}
+
+model Screenshot {
+  id String @id @default(uuid())
+
+  originalUrl String  @map("original_url")
+  previewUrl  String? @map("preview_url")
+
+  anime   Anime?  @relation(fields: [animeId], references: [id])
+  animeId String? @map("anime_id")
+
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+  episodeId String?  @map("episode_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("screenshots")
+}
+
+model Video {
+  id String @id @default(uuid())
+
+  url   String
+  title String
+
+  playerUrl String @map("player_url")
+  imageUrl  String @map("image_url")
+
+  anime   Anime  @relation(fields: [animeId], references: [id])
+  animeId String @map("anime_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("videos")
+}
+
+enum AnimeCountry {
+  OTHER
+  JAPAN
+  CHINA
+  KOREA
+}
+
+enum AnimeStatus {
+  ANNOUNCE
+  ONGOING
+  RELEASED
+}
+
+enum AnimeType {
+  TV
+  MOVIE
+  OVA
+  ONA
+  SPECIAL
+  MUSIC
+  PV
+  CM
+}
+
+enum AnimeRating {
+  SAFE
+  SUGGESTIVE
+  QUESTIONABLE
+  EXPLICIT
+}
+
+enum AnimeSeason {
+  WINTER
+  SPRING
+  SUMMER
+  AUTUMN
+}
+
+enum TranslationPlayer {
+  KODIK
+  LIBRIA
+}
+
+enum TranslationType {
+  VOICE
+  SUBTITLES
+}
+
+enum TagType {
+  DEMOGRAPHIC
+  GENRE
+  THEME
+}
